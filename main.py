@@ -221,28 +221,33 @@ class PK3ExtractorApp:
             self.log_output.insert(tk.END, f"Extracting {pk3_file}...\n")
             self.log_output.see(tk.END)  # Autoscroll
             self.root.update_idletasks()  # Ensure the UI stays responsive
-            with zipfile.ZipFile(os.path.join(input_folder, pk3_file), 'r') as zip_ref:
-                levelshots = [f for f in zip_ref.namelist() if f.startswith('levelshots/') and not f.endswith('/')]
-                for file in levelshots:
-                    if self.stop_event.is_set():
-                        break
-                    target_path = os.path.join(output_folder, os.path.basename(file))
-                    target_dir = os.path.dirname(target_path)
-                    if not os.path.exists(target_dir):
-                        self.log_output.insert(tk.END, f"Creating directory: {target_dir}\n")
-                        self.log_output.see(tk.END)  # Autoscroll
-                        self.root.update_idletasks()  # Ensure the UI stays responsive
-                        os.makedirs(target_dir)
-                    try:
-                        self.log_output.insert(tk.END, f"Extracting file: {file} to {target_path}\n")
-                        self.log_output.see(tk.END)  # Autoscroll
-                        self.root.update_idletasks()  # Ensure the UI stays responsive
-                        with zip_ref.open(file) as source, open(target_path, 'wb') as target:
-                            target.write(source.read())
-                    except FileNotFoundError as e:
-                        self.log_output.insert(tk.END, f"Error: {e}\n")
-                        self.log_output.see(tk.END)  # Autoscroll
-                        self.root.update_idletasks()  # Ensure the UI stays responsive
+            try:
+                with zipfile.ZipFile(os.path.join(input_folder, pk3_file), 'r') as zip_ref:
+                    levelshots = [f for f in zip_ref.namelist() if f.startswith('levelshots/') and not f.endswith('/')]
+                    for file in levelshots:
+                        if self.stop_event.is_set():
+                            break
+                        target_path = os.path.join(output_folder, os.path.basename(file))
+                        target_dir = os.path.dirname(target_path)
+                        if not os.path.exists(target_dir):
+                            self.log_output.insert(tk.END, f"Creating directory: {target_dir}\n")
+                            self.log_output.see(tk.END)  # Autoscroll
+                            self.root.update_idletasks()  # Ensure the UI stays responsive
+                            os.makedirs(target_dir)
+                        try:
+                            self.log_output.insert(tk.END, f"Extracting file: {file} to {target_path}\n")
+                            self.log_output.see(tk.END)  # Autoscroll
+                            self.root.update_idletasks()  # Ensure the UI stays responsive
+                            with zip_ref.open(file) as source, open(target_path, 'wb') as target:
+                                target.write(source.read())
+                        except FileNotFoundError as e:
+                            self.log_output.insert(tk.END, f"Error: {e}\n")
+                            self.log_output.see(tk.END)  # Autoscroll
+                            self.root.update_idletasks()  # Ensure the UI stays responsive
+            except zipfile.BadZipFile as e:
+                self.log_output.insert(tk.END, f"Error: Could not open {pk3_file} as a zip file.\n")
+                self.log_output.see(tk.END)  # Autoscroll
+                self.root.update_idletasks()  # Ensure the UI stays responsive
             self.progress.set((idx + 1) / total_files * 100)
             self.root.update_idletasks()  # Ensure the UI stays responsive
 
