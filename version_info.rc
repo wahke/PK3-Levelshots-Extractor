@@ -1,7 +1,7 @@
 VSVersionInfo(
     ffi=FixedFileInfo(
-        filevers=(1, 0, 1, 1),
-        prodvers=(1, 0, 1, 1),
+        filevers=(1, 0, 1, 2),
+        prodvers=(1, 0, 1, 2),
         mask=0x3f,
         flags=0x0,
         OS=0x40004,
@@ -17,12 +17,12 @@ VSVersionInfo(
                     [
                         StringStruct('CompanyName', 'Rebels of Gaming'),
                         StringStruct('FileDescription', 'PK3 LevelShots Extractor'),
-                        StringStruct('FileVersion', '1.0.1.1'),
+                        StringStruct('FileVersion', '1.0.1.2'),
                         StringStruct('InternalName', 'PK3Extractor'),
                         StringStruct('LegalCopyright', '© 2021 – 2024 Rebels of Gaming'),
                         StringStruct('OriginalFilename', 'PK3Extractor.exe'),
                         StringStruct('ProductName', 'PK3 LevelShots Extractor'),
-                        StringStruct('ProductVersion', '1.0.1.1'),
+                        StringStruct('ProductVersion', '1.0.1.2'),
                     ]
                 )
             ]
