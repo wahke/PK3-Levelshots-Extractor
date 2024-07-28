@@ -112,6 +112,7 @@ class PK3ExtractorApp:
         self.output_folder = tk.StringVar()
 
         self.create_widgets()
+        self.stop_event = threading.Event()  # Event to signal stopping the extraction
 
     def set_window_icon(self, base64_string):
         if base64_string:
@@ -152,6 +153,7 @@ class PK3ExtractorApp:
 
         self.cancel_button = tk.Button(self.root, text=self.config[self.lang]['cancel_button'], command=self.cancel_extraction)
         self.cancel_button.grid(row=4, column=1)
+        self.cancel_button.config(state=tk.DISABLED)
 
         self.credits_button = tk.Button(self.root, text=self.config[self.lang]['credits_button'], command=self.show_credits)
         self.credits_button.grid(row=4, column=2)
@@ -198,8 +200,10 @@ class PK3ExtractorApp:
 
     def start_extraction(self):
         self.log_output.insert(tk.END, "Starting extraction...\n")
+        self.log_output.see(tk.END)  # Autoscroll
         self.extract_button.config(state=tk.DISABLED)
         self.cancel_button.config(state=tk.NORMAL)
+        self.stop_event.clear()  # Clear the stop event
         self.progress.set(0)
         self.extraction_thread = threading.Thread(target=self.extract_files)
         self.extraction_thread.start()
@@ -212,12 +216,16 @@ class PK3ExtractorApp:
         total_files = len(pk3_files)
 
         for idx, pk3_file in enumerate(pk3_files):
+            if self.stop_event.is_set():
+                break
             self.log_output.insert(tk.END, f"Extracting {pk3_file}...\n")
             self.log_output.see(tk.END)  # Autoscroll
             self.root.update_idletasks()  # Ensure the UI stays responsive
             with zipfile.ZipFile(os.path.join(input_folder, pk3_file), 'r') as zip_ref:
                 levelshots = [f for f in zip_ref.namelist() if f.startswith('levelshots/') and not f.endswith('/')]
                 for file in levelshots:
+                    if self.stop_event.is_set():
+                        break
                     target_path = os.path.join(output_folder, os.path.basename(file))
                     target_dir = os.path.dirname(target_path)
                     if not os.path.exists(target_dir):
@@ -238,13 +246,15 @@ class PK3ExtractorApp:
             self.progress.set((idx + 1) / total_files * 100)
             self.root.update_idletasks()  # Ensure the UI stays responsive
 
-        self.log_output.insert(tk.END, "Extraction completed.\n")
+        if not self.stop_event.is_set():
+            self.log_output.insert(tk.END, "Extraction completed.\n")
+            self.show_completion_popup(output_folder)
+        else:
+            self.log_output.insert(tk.END, "Extraction cancelled.\n")
+
         self.log_output.see(tk.END)  # Autoscroll
         self.extract_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
-
-        # Popup anzeigen und Ausgabeordner öffnen
-        self.show_completion_popup(output_folder)
 
     def show_completion_popup(self, output_folder):
         messagebox.showinfo(
@@ -254,16 +264,7 @@ class PK3ExtractorApp:
         os.startfile(output_folder)
 
     def cancel_extraction(self):
-        if self.extraction_thread.is_alive():
-            self.log_output.insert(tk.END, "Cancelling extraction...\n")
-            self.log_output.see(tk.END)  # Autoscroll
-            self.root.update_idletasks()  # Ensure the UI stays responsive
-            self.extraction_thread.join(timeout=1)
-            self.log_output.insert(tk.END, "Extraction cancelled.\n")
-            self.log_output.see(tk.END)  # Autoscroll
-            self.root.update_idletasks()  # Ensure the UI stays responsive
-            self.extract_button.config(state=tk.NORMAL)
-            self.cancel_button.config(state=tk.DISABLED)
+        self.stop_event.set()  # Signal the extraction thread to stop
 
     def show_credits(self):
         credits = self.config[self.lang]['credits_text']
