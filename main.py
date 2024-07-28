@@ -213,6 +213,8 @@ class PK3ExtractorApp:
 
         for idx, pk3_file in enumerate(pk3_files):
             self.log_output.insert(tk.END, f"Extracting {pk3_file}...\n")
+            self.log_output.see(tk.END)  # Autoscroll
+            self.root.update_idletasks()  # Ensure the UI stays responsive
             with zipfile.ZipFile(os.path.join(input_folder, pk3_file), 'r') as zip_ref:
                 levelshots = [f for f in zip_ref.namelist() if f.startswith('levelshots/') and not f.endswith('/')]
                 for file in levelshots:
@@ -220,16 +222,24 @@ class PK3ExtractorApp:
                     target_dir = os.path.dirname(target_path)
                     if not os.path.exists(target_dir):
                         self.log_output.insert(tk.END, f"Creating directory: {target_dir}\n")
+                        self.log_output.see(tk.END)  # Autoscroll
+                        self.root.update_idletasks()  # Ensure the UI stays responsive
                         os.makedirs(target_dir)
                     try:
                         self.log_output.insert(tk.END, f"Extracting file: {file} to {target_path}\n")
+                        self.log_output.see(tk.END)  # Autoscroll
+                        self.root.update_idletasks()  # Ensure the UI stays responsive
                         with zip_ref.open(file) as source, open(target_path, 'wb') as target:
                             target.write(source.read())
                     except FileNotFoundError as e:
                         self.log_output.insert(tk.END, f"Error: {e}\n")
+                        self.log_output.see(tk.END)  # Autoscroll
+                        self.root.update_idletasks()  # Ensure the UI stays responsive
             self.progress.set((idx + 1) / total_files * 100)
+            self.root.update_idletasks()  # Ensure the UI stays responsive
 
         self.log_output.insert(tk.END, "Extraction completed.\n")
+        self.log_output.see(tk.END)  # Autoscroll
         self.extract_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
 
@@ -246,8 +256,12 @@ class PK3ExtractorApp:
     def cancel_extraction(self):
         if self.extraction_thread.is_alive():
             self.log_output.insert(tk.END, "Cancelling extraction...\n")
+            self.log_output.see(tk.END)  # Autoscroll
+            self.root.update_idletasks()  # Ensure the UI stays responsive
             self.extraction_thread.join(timeout=1)
             self.log_output.insert(tk.END, "Extraction cancelled.\n")
+            self.log_output.see(tk.END)  # Autoscroll
+            self.root.update_idletasks()  # Ensure the UI stays responsive
             self.extract_button.config(state=tk.NORMAL)
             self.cancel_button.config(state=tk.DISABLED)
 
