@@ -41,7 +41,15 @@ class PK3ExtractorApp:
         help_text = HELP_EN
         help_title = Help
         completion_popup_title = Extraction Completed
-        completion_popup_message = The extraction has been completed successfully.
+        completion_popup_message = The extraction has been completed successfully. Skipped files:
+        log_starting_extraction = Starting extraction...
+        log_creating_directory = Creating directory:
+        log_extracting_file = Extracting file:
+        log_error = Error:
+        log_error_zip = Error: Could not open as a zip file.
+        log_extraction_completed = Extraction completed.
+        log_extraction_cancelled = Extraction cancelled.
+        log_skipped_files = Skipped files:
         copyright_text = Rebels of Gaming © 2021 – 2024
 
         [Text_de]
@@ -57,7 +65,15 @@ class PK3ExtractorApp:
         help_text = HELP_DE
         help_title = Hilfe
         completion_popup_title = Extraktion abgeschlossen
-        completion_popup_message = Die Extraktion wurde erfolgreich abgeschlossen.
+        completion_popup_message = Die Extraktion wurde erfolgreich abgeschlossen. Übersprungene Dateien:
+        log_starting_extraction = Extraktion wird gestartet...
+        log_creating_directory = Verzeichnis wird erstellt:
+        log_extracting_file = Datei wird extrahiert:
+        log_error = Fehler:
+        log_error_zip = Fehler: Konnte nicht als ZIP-Datei geöffnet werden.
+        log_extraction_completed = Extraktion abgeschlossen.
+        log_extraction_cancelled = Extraktion abgebrochen.
+        log_skipped_files = Übersprungene Dateien:
         copyright_text = Rebels of Gaming © 2021 – 2024
         """
 
@@ -200,13 +216,12 @@ class PK3ExtractorApp:
         self.output_folder.set(filedialog.askdirectory())
 
     def start_extraction(self):
-        self.log_output.insert(tk.END, "Starting extraction...\n")
+        self.log_output.insert(tk.END, f"{self.config[self.lang]['log_starting_extraction']}\n")
         self.log_output.see(tk.END)  # Autoscroll
         self.extract_button.config(state=tk.DISABLED)
         self.cancel_button.config(state=tk.NORMAL)
-        self.stop_event.clear()  # Clear the stop event
         self.progress.set(0)
-        self.skipped_files.clear()  # Clear the list of skipped files
+        self.stop_event.clear()  # Clear the stop event before starting
         self.extraction_thread = threading.Thread(target=self.extract_files)
         self.extraction_thread.start()
 
@@ -232,23 +247,23 @@ class PK3ExtractorApp:
                         target_path = os.path.join(output_folder, os.path.basename(file))
                         target_dir = os.path.dirname(target_path)
                         if not os.path.exists(target_dir):
-                            self.log_output.insert(tk.END, f"Creating directory: {target_dir}\n")
+                            self.log_output.insert(tk.END, f"{self.config[self.lang]['log_creating_directory']} {target_dir}\n")
                             self.log_output.see(tk.END)  # Autoscroll
                             self.root.update_idletasks()  # Ensure the UI stays responsive
                             os.makedirs(target_dir)
                         try:
-                            self.log_output.insert(tk.END, f"Extracting file: {file} to {target_path}\n")
+                            self.log_output.insert(tk.END, f"{self.config[self.lang]['log_extracting_file']} {file} to {target_path}\n")
                             self.log_output.see(tk.END)  # Autoscroll
                             self.root.update_idletasks()  # Ensure the UI stays responsive
                             with zip_ref.open(file) as source, open(target_path, 'wb') as target:
                                 target.write(source.read())
                         except FileNotFoundError as e:
-                            self.log_output.insert(tk.END, f"Error: {e}\n")
+                            self.log_output.insert(tk.END, f"{self.config[self.lang]['log_error']} {e}\n")
                             self.log_output.see(tk.END)  # Autoscroll
                             self.root.update_idletasks()  # Ensure the UI stays responsive
                             self.skipped_files.append(file)
             except zipfile.BadZipFile as e:
-                self.log_output.insert(tk.END, f"Error: Could not open {pk3_file} as a zip file.\n")
+                self.log_output.insert(tk.END, f"{self.config[self.lang]['log_error_zip']} {pk3_file}\n")
                 self.log_output.see(tk.END)  # Autoscroll
                 self.root.update_idletasks()  # Ensure the UI stays responsive
                 self.skipped_files.append(pk3_file)
@@ -256,17 +271,17 @@ class PK3ExtractorApp:
             self.root.update_idletasks()  # Ensure the UI stays responsive
 
         if not self.stop_event.is_set():
-            self.log_output.insert(tk.END, "Extraction completed.\n")
+            self.log_output.insert(tk.END, f"{self.config[self.lang]['log_extraction_completed']}\n")
             if self.skipped_files:
-                self.log_output.insert(tk.END, "Skipped files:\n")
+                self.log_output.insert(tk.END, f"{self.config[self.lang]['log_skipped_files']}\n")
                 for file in self.skipped_files:
                     self.log_output.insert(tk.END, f"{file}\n")
                     self.log_output.see(tk.END)  # Autoscroll
-            self.show_completion_popup(output_folder)
+            self.show_completion_popup(output_folder, self.skipped_files)
         else:
-            self.log_output.insert(tk.END, "Extraction cancelled.\n")
+            self.log_output.insert(tk.END, f"{self.config[self.lang]['log_extraction_cancelled']}\n")
             if self.skipped_files:
-                self.log_output.insert(tk.END, "Skipped files:\n")
+                self.log_output.insert(tk.END, f"{self.config[self.lang]['log_skipped_files']}\n")
                 for file in self.skipped_files:
                     self.log_output.insert(tk.END, f"{file}\n")
                     self.log_output.see(tk.END)  # Autoscroll
@@ -275,11 +290,18 @@ class PK3ExtractorApp:
         self.extract_button.config(state=tk.NORMAL)
         self.cancel_button.config(state=tk.DISABLED)
 
-    def show_completion_popup(self, output_folder):
-        messagebox.showinfo(
-            self.config[self.lang]['completion_popup_title'], 
-            self.config[self.lang]['completion_popup_message']
-        )
+    def show_completion_popup(self, output_folder, skipped_files):
+        if skipped_files:
+            skipped_files_message = "\n".join(skipped_files)
+            messagebox.showinfo(
+                self.config[self.lang]['completion_popup_title'], 
+                f"{self.config[self.lang]['completion_popup_message']}\n\n{skipped_files_message}"
+            )
+        else:
+            messagebox.showinfo(
+                self.config[self.lang]['completion_popup_title'], 
+                self.config[self.lang]['completion_popup_message']
+            )
         os.startfile(output_folder)
 
     def cancel_extraction(self):
